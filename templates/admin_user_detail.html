@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}用户详情 - {{ u.username }} - 管理后台{% endblock %}
+
+{% block extra_css %}
+<style>
+.admin-user-detail{max-width:1200px;margin:0 auto;padding:var(--space-6)}
+.user-header-card{
+    background:var(--bg-white);border:1px solid var(--border-light);
+    border-radius:var(--radius-xl);padding:var(--space-6);
+    margin-bottom:var(--space-6);display:flex;align-items:center;gap:var(--space-5);
+    flex-wrap:wrap;
+}
+.user-avatar-lg{
+    width:72px;height:72px;border-radius:50%;
+    background:linear-gradient(135deg,var(--primary),var(--primary-light));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:var(--text-3xl);font-weight:800;flex-shrink:0;
+}
+.user-header-info{flex:1;min-width:200px}
+.user-header-info h1{font-size:var(--text-2xl);font-weight:800;color:var(--text-primary);margin:0 0 var(--space-1) 0}
+.user-header-info p{color:var(--text-muted);font-size:var(--text-sm);margin:0}
+.user-meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:var(--space-3);margin-top:var(--space-4)}
+.user-meta-item{text-align:center;padding:var(--space-3);background:var(--bg-gray-50);border-radius:var(--radius-lg)}
+.user-meta-value{font-size:var(--text-xl);font-weight:800;color:var(--primary)}
+.user-meta-label{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px}
+
+.detail-section{
+    background:var(--bg-white);border:1px solid var(--border-light);
+    border-radius:var(--radius-xl);padding:var(--space-6);margin-bottom:var(--space-6);
+}
+.detail-section h2{font-size:var(--text-lg);font-weight:700;color:var(--text-primary);margin:0 0 var(--space-4) 0;padding-bottom:var(--space-3);border-bottom:1px solid var(--border-light)}
+
+.edit-form .form-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+@media(max-width:767px){.edit-form .form-row{grid-template-columns:1fr}}
+.form-actions{display:flex;gap:var(--space-3);margin-top:var(--space-5)}
+
+.back-link{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--primary);text-decoration:none;font-weight:600;margin-bottom:var(--space-4)}
+.back-link:hover{text-decoration:underline}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-user-detail">
+    <a href="{{ url_for('admin_panel') }}" class="back-link">&#8592; 返回管理后台</a>
+
+    <!-- 用户基本信息卡片 -->
+    <div class="user-header-card">
+        <div class="user-avatar-lg">{{ u.username[0].upper() if u.username else '?' }}</div>
+        <div class="user-header-info">
+            <h1>{{ u.username }}</h1>
+            <p>{{ u.email }} | 注册于 {{ u.created_at.strftime('%Y-%m-%d') }} | 最后登录: {{ u.last_login_at.strftime('%Y-%m-%d %H:%M') if u.last_login_at else '从未登录' }}</p>
+            <div class="user-meta-grid">
+                <div class="user-meta-item">
+                    <div class="user-meta-value">{{ stats.total_lessons }}</div>
+                    <div class="user-meta-label">总课时</div>
+                </div>
+                <div class="user-meta-item">
+                    <div class="user-meta-value">{{ stats.completed_lessons }}</div>
+                    <div class="user-meta-label">已完成课时</div>
+                </div>
+                <div class="user-meta-item">
+                    <div class="user-meta-value">{{ stats.passed_exercises }}/{{ stats.total_exercises }}</div>
+                    <div class="user-meta-label">练习通过</div>
+                </div>
+                <div class="user-meta-item">
+                    <div class="user-meta-value">{{ stats.passed_exams }}/{{ stats.total_exams }}</div>
+                    <div class="user-meta-label">考试通过</div>
+                </div>
+                <div class="user-meta-item">
+                    <div class="user-meta-value">{{ stats.avg_score|round(1) }}%</div>
+                    <div class="user-meta-label">平均练习分</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 账户信息编辑 -->
+    <div class="detail-section">
+        <h2>&#9881; 账户信息</h2>
+        <form class="edit-form" id="userEditForm" onsubmit="saveUserInfo(event, {{ u.id }})">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <input type="text" class="form-control" id="editUsername" value="{{ u.username }}" required minlength="3">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">邮箱</label>
+                    <input type="email" class="form-control" id="editEmail" value="{{ u.email }}" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">角色</label>
+                    <select class="form-control" id="editRole">
+                        <option value="student" {% if u.role == 'student' %}selected{% endif %}>学生</option>
+                        <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>管理员</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">部门/班级</label>
+                    <input type="text" class="form-control" id="editDepartment" value="{{ u.department or '' }}" placeholder="可选">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">保存修改</button>
+                <button type="button" class="btn btn-secondary" onclick="resetPassword({{ u.id }})">重置密码</button>
+                <span id="editStatus" style="color:var(--success);font-weight:600;display:none;align-self:center;">&#10003; 已保存</span>
+            </div>
+        </form>
+    </div>
+
+    <!-- 课程学习进度 -->
+    <div class="detail-section">
+        <h2>&#128218; 课程学习进度</h2>
+        {% if course_progress_list %}
+        {% for cp in course_progress_list %}
+        <div style="margin-bottom:var(--space-3);">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:var(--text-sm);font-weight:600;">{{ cp.title }}</span>
+                <span style="font-size:var(--text-sm);color:var(--text-muted);">{{ cp.progress }}%</span>
+            </div>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar-fill {% if cp.progress >= 70 %}success{% elif cp.progress >= 40 %}warning{% else %}danger{% endif %}" style="width:{{ cp.progress }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p style="color:var(--text-muted);text-align:center;padding:var(--space-6) 0;">该用户尚未开始任何课程学习</p>
+        {% endif %}
+    </div>
+
+    <!-- 最近提交记录 -->
+    <div class="detail-section">
+        <h2>&#128221; 最近提交记录 ({{ submissions|length }})</h2>
+        {% if submissions %}
+        <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>练习</th><th>得分</th><th>状态</th><th>提交时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in submissions %}
+                    <tr>
+                        <td>#{{ sub.id }}</td>
+                        <td>{{ sub.exercise.title if sub.exercise else '已删除' }}</td>
+                        <td><strong>{{ sub.score|int }}%</strong></td>
+                        <td>
+                            {% if sub.status == 'passed' %}<span class="badge-admin success">通过</span>
+                            {% elif sub.status == 'failed' %}<span class="badge-admin danger">未通过</span>
+                            {% else %}<span class="badge-admin warning">{{ sub.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ sub.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color:var(--text-muted);text-align:center;padding:var(--space-6) 0;">暂无提交记录</p>
+        {% endif %}
+    </div>
+
+    <!-- 考试记录 -->
+    <div class="detail-section">
+        <h2>&#127942; 考试记录 ({{ exam_attempts|length }})</h2>
+        {% if exam_attempts %}
+        <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>考试</th><th>得分</th><th>结果</th><th>状态</th><th>时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attempt in exam_attempts %}
+                    <tr>
+                        <td>{{ attempt.exam.title if attempt.exam else '已删除' }}</td>
+                        <td><strong>{{ attempt.score|round(1) }}%</strong></td>
+                        <td>
+                            {% if attempt.passed %}<span class="badge-admin success">通过</span>
+                            {% else %}<span class="badge-admin danger">未通过</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ attempt.status }}</td>
+                        <td>{{ attempt.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color:var(--text-muted);text-align:center;padding:var(--space-6) 0;">暂无考试记录</p>
+        {% endif %}
+    </div>
+
+    <!-- 操作日志 -->
+    <div class="detail-section">
+        <h2>&#128203; 最近操作日志 ({{ learning_logs|length }})</h2>
+        {% if learning_logs %}
+        <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>时间</th><th>操作</th><th>详情</th><th>类型</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in learning_logs %}
+                    <tr>
+                        <td style="white-space:nowrap;">{{ log.formatted_time }}</td>
+                        <td><strong>{{ log.action }}</strong></td>
+                        <td>{{ log.detail or '-' }}</td>
+                        <td><span class="badge-admin info">{{ log.log_type }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color:var(--text-muted);text-align:center;padding:var(--space-6) 0;">暂无操作日志</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function saveUserInfo(event, userId) {
+    event.preventDefault();
+    var data = {
+        username: document.getElementById('editUsername').value.trim(),
+        email: document.getElementById('editEmail').value.trim(),
+        role: document.getElementById('editRole').value,
+        department: document.getElementById('editDepartment').value.trim()
+    };
+    if (!data.username || !data.email) {
+        alert('用户名和邮箱不能为空');
+        return;
+    }
+    fetch('/admin/user/' + userId + '/update', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    }).then(function(r){ return r.json(); })
+    .then(function(result){
+        if (result.success) {
+            var statusEl = document.getElementById('editStatus');
+            statusEl.style.display = 'inline';
+            setTimeout(function(){ statusEl.style.display = 'none'; }, 2000);
+        } else {
+            alert('保存失败: ' + (result.error || '未知错误'));
+        }
+    }).catch(function(err){
+        alert('请求失败: ' + err.message);
+    });
+}
+
+function resetPassword(userId) {
+    var newPwd = prompt('请输入新密码（至少6位）:');
+    if (!newPwd) return;
+    if (newPwd.length < 6) { alert('密码至少需要6位'); return; }
+    fetch('/admin/user/' + userId + '/reset-password', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password: newPwd})
+    }).then(function(r){ return r.json(); })
+    .then(function(result){
+        alert(result.success ? '密码已重置' : ('失败: ' + (result.error || '未知错误')));
+    }).catch(function(err){
+        alert('请求失败: ' + err.message);
+    });
+}
+</script>
+{% endblock %}

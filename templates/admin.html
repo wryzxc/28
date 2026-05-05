@@ -377,7 +377,7 @@
                 </a>
             </li>
             <li class="admin-nav-item">
-                <a class="admin-nav-link" onclick="showTab('submissions')">
+                <a class="admin-nav-link {% if active_tab == 'submissions' %}active{% endif %}" href="{{ url_for('admin_submissions') }}">
                     <span class="icon">&#128221;</span> 提交记录
                 </a>
             </li>
@@ -397,7 +397,7 @@
     <!-- 主内容区 -->
     <main class="admin-main">
         <!-- 仪表盘 -->
-        <div id="tab-dashboard" class="tab-content active">
+        <div id="tab-dashboard" class="tab-content {% if active_tab != 'submissions' %}active{% endif %}">
             <div class="admin-header">
                 <h1>仪表盘</h1>
                 <span class="badge-admin info">&#9200; 实时数据</span>
@@ -610,30 +610,29 @@
             </div>
         </div>
 
-        <!-- 提交记录 -->
-        <div id="tab-submissions" class="tab-content">
+        <!-- 提交记录（服务端分页） -->
+        <div id="tab-submissions" class="tab-content {% if active_tab == 'submissions' %}active{% endif %}">
             <div class="admin-header">
                 <h1>提交记录</h1>
-                <span class="badge-admin info">共 {{ submission_count }} 条记录</span>
+                <span class="badge-admin info">共 {{ submission_pagination.total if submission_pagination else submission_count }} 条记录</span>
             </div>
 
-            <div class="filter-bar">
-                <input type="text" class="filter-input" placeholder="搜索用户名...">
-                <select class="filter-select">
+            <form class="filter-bar" method="GET" action="{{ url_for('admin_submissions') }}">
+                <input type="text" name="search" class="filter-input" placeholder="搜索用户名..." value="{{ submission_search }}">
+                <select name="status" class="filter-select">
                     <option value="">全部状态</option>
-                    <option value="passed">通过</option>
-                    <option value="failed">未通过</option>
-                    <option value="pending">待评分</option>
+                    <option value="passed" {% if submission_status_filter == 'passed' %}selected{% endif %}>通过</option>
+                    <option value="failed" {% if submission_status_filter == 'failed' %}selected{% endif %}>未通过</option>
+                    <option value="pending" {% if submission_status_filter == 'pending' %}selected{% endif %}>待评分</option>
                 </select>
-                <select class="filter-select">
-                    <option value="">全部难度</option>
-                    <option value="easy">简单</option>
-                    <option value="medium">中等</option>
-                    <option value="hard">困难</option>
-                </select>
-            </div>
+                <button type="submit" class="btn-filter">筛选</button>
+                {% if submission_status_filter or submission_search %}
+                <a href="{{ url_for('admin_submissions') }}" class="btn-filter" style="background:var(--bg-gray-100);">清除筛选</a>
+                {% endif %}
+            </form>
 
             <div class="data-table-card">
+                {% if submissions_list %}
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -643,16 +642,15 @@
                             <th>得分</th>
                             <th>状态</th>
                             <th>提交时间</th>
-                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for sub in recent_submissions %}
+                        {% for sub in submissions_list %}
                         <tr>
                             <td>#{{ sub.id }}</td>
-                            <td>{{ sub.username }}</td>
-                            <td>{{ sub.exercise_title }}</td>
-                            <td><strong>{{ sub.score }}%</strong></td>
+                            <td><strong>{{ sub.user.username if sub.user else '未知' }}</strong></td>
+                            <td>{{ sub.exercise.title if sub.exercise else '已删除' }}</td>
+                            <td><strong>{{ sub.score|int }}%</strong></td>
                             <td>
                                 {% if sub.status == 'passed' %}
                                 <span class="badge-admin success">通过</span>
@@ -663,11 +661,57 @@
                                 {% endif %}
                             </td>
                             <td>{{ sub.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td><button class="btn-filter" style="padding: 0.25rem 0.5rem; font-size: var(--text-xs);">查看</button></td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+
+                <!-- 分页组件 -->
+                {% if submission_pagination and submission_pagination.pages > 1 %}
+                <div class="pagination" style="display:flex;justify-content:center;align-items:center;gap:var(--space-2);padding:var(--space-5) 0;">
+                    {% if submission_pagination.has_prev %}
+                    <a class="btn-filter" href="{{ url_for('admin_submissions', page=submission_pagination.prev_num, status=submission_status_filter, search=submission_search) }}">&#8592; 上一页</a>
+                    {% else %}
+                    <span class="btn-filter" style="opacity:0.4;cursor:default;">&#8592; 上一页</span>
+                    {% endif %}
+
+                    {% for page_num in submission_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            {% if page_num == submission_pagination.page %}
+                            <span class="btn-filter" style="background:var(--primary);color:#fff;font-weight:700;">{{ page_num }}</span>
+                            {% else %}
+                            <a class="btn-filter" href="{{ url_for('admin_submissions', page=page_num, status=submission_status_filter, search=submission_search) }}">{{ page_num }}</a>
+                            {% endif %}
+                        {% else %}
+                            <span style="color:var(--text-muted);">...</span>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if submission_pagination.has_next %}
+                    <a class="btn-filter" href="{{ url_for('admin_submissions', page=submission_pagination.next_num, status=submission_status_filter, search=submission_search) }}">下一页 &#8594;</a>
+                    {% else %}
+                    <span class="btn-filter" style="opacity:0.4;cursor:default;">下一页 &#8594;</span>
+                    {% endif %}
+
+                    <span style="font-size:var(--text-xs);color:var(--text-muted);margin-left:var(--space-4);">
+                        第 {{ submission_pagination.page }}/{{ submission_pagination.pages }} 页，共 {{ submission_pagination.total }} 条
+                    </span>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <div style="text-align:center;padding:var(--space-16) var(--space-6);">
+                    <div style="font-size:3rem;margin-bottom:var(--space-4);opacity:.4;">&#128221;</div>
+                    <p style="color:var(--text-muted);font-size:var(--text-base);margin-bottom:var(--space-2);">暂无提交记录</p>
+                    <p style="color:var(--text-muted);font-size:var(--text-sm);">
+                        {% if submission_status_filter or submission_search %}
+                        未找到匹配的提交记录，<a href="{{ url_for('admin_submissions') }}" style="color:var(--primary);">清除筛选条件</a>
+                        {% else %}
+                        用户提交练习后，记录将显示在这里
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -675,7 +719,7 @@
         <div id="tab-logs" class="tab-content">
             <div class="admin-header">
                 <h1>操作日志</h1>
-                <button class="btn-filter" onclick="clearLogs()">清除日志</button>
+                <span class="badge-admin info">实时数据</span>
             </div>
 
             <div class="filter-bar">
@@ -693,17 +737,31 @@
 
             <div class="data-table-card">
                 <div class="data-table-header">
-                    <h3 class="data-table-title">系统操作日志</h3>
+                    <h3 class="data-table-title">系统操作日志 (真实数据，共 {{ total_log_count }} 条，显示最近 100 条)</h3>
                 </div>
-                <div id="logContainer">
-                    {% for log in system_logs %}
-                    <div class="log-item" data-type="{{ log.type }}" data-content="{{ log.action }}">
-                        <span class="log-time">{{ log.timestamp }}</span>
-                        <span class="log-user">{{ log.username }}</span>
-                        <span class="log-action">{{ log.action }}</span>
-                        <span class="log-detail">{{ log.detail }}</span>
-                    </div>
-                    {% endfor %}
+                <div style="overflow-x:auto;">
+                    <table class="data-table" style="width:100%;">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>用户</th>
+                                <th>操作类型</th>
+                                <th>操作</th>
+                                <th>详情</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logContainer">
+                            {% for log in system_logs %}
+                            <tr class="log-item" data-type="{{ log.type }}" data-content="{{ log.action }}">
+                                <td style="white-space:nowrap;">{{ log.timestamp }}</td>
+                                <td><strong>{{ log.username }}</strong> <small style="color:var(--text-muted);">#{{ log.user_id }}</small></td>
+                                <td><span class="badge-admin info">{{ log.type }}</span></td>
+                                <td>{{ log.action }}</td>
+                                <td>{{ log.detail[:80] }}{% if log.detail|length > 80 %}...{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -917,29 +975,29 @@ function filterUsers() {
 function filterLogs() {
     var search = document.getElementById('logSearch').value.toLowerCase();
     var type = document.getElementById('logTypeFilter').value;
+    var dateFrom = document.getElementById('logDateFrom').value;
+    var dateTo = document.getElementById('logDateTo').value;
     var items = document.querySelectorAll('#logContainer .log-item');
 
     items.forEach(function(item) {
         var content = item.getAttribute('data-content').toLowerCase();
         var itemType = item.getAttribute('data-type');
+        var timeCell = item.querySelector('td:first-child');
+        var itemTime = timeCell ? timeCell.textContent.trim() : '';
 
         var matchSearch = content.includes(search);
         var matchType = !type || itemType === type;
+        var matchDate = true;
+        if (dateFrom && itemTime) matchDate = itemTime >= dateFrom;
+        if (dateTo && itemTime) matchDate = matchDate && itemTime <= dateTo + ' 23:59:59';
 
-        item.style.display = (matchSearch && matchType) ? '' : 'none';
+        item.style.display = (matchSearch && matchType && matchDate) ? '' : 'none';
     });
-}
-
-function clearLogs() {
-    if (confirm('确定要清除所有日志吗？此操作不可撤销。')) {
-        document.getElementById('logContainer').innerHTML = '<div style="padding: var(--space-4); text-align: center; color: var(--text-muted);">暂无日志记录</div>';
-        showToast('日志已清除', 'success');
-    }
 }
 
 // ===================== 用户详情 =====================
 function viewUserDetail(userId) {
-    showToast('用户详情功能开发中 (ID: ' + userId + ')', 'info');
+    window.location.href = '/admin/user/' + userId;
 }
 
 // ===================== Toast 通知 =====================

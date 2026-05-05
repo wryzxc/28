@@ -406,7 +406,7 @@ def index():
     if current_user.is_authenticated:
         stats = get_user_stats(current_user.id)
     platform_stats = get_platform_stats()
-    return render_template('index.html', courses=courses, stats=stats, platform_stats=platform_stats)
+    return render_template('index.html', courses=courses, stats=stats, platform_stats=platform_stats, landing_mode=True)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -514,14 +514,14 @@ def profile():
 
     # 成就徽章系统
     achievements = [
-        {'name': '初学者', 'description': '完成第一个练习', 'icon': '&#127891;', 'unlocked': stats.get('passed_exercises', 0) >= 1},
-        {'name': '代码达人', 'description': '完成10个练习', 'icon': '&#128187;', 'unlocked': stats.get('passed_exercises', 0) >= 10},
-        {'name': '学习先锋', 'description': '完成50%课程', 'icon': '&#128640;', 'unlocked': stats.get('lesson_progress', 0) >= 50},
-        {'name': '考试通过', 'description': '通过第一次考试', 'icon': '&#127942;', 'unlocked': stats.get('passed_exams', 0) >= 1},
-        {'name': '全勤奖', 'description': '连续学习7天', 'icon': '&#128197;', 'unlocked': streak_days >= 7},
-        {'name': '满分王者', 'description': '获得一次满分', 'icon': '&#11088;', 'unlocked': any(s.score == 100 for s in submissions)},
-        {'name': '探索者', 'description': '尝试所有课程', 'icon': '&#127758;', 'unlocked': stats.get('completed_lessons', 0) >= 5},
-        {'name': '专家', 'description': '通过所有考试', 'icon': '&#127941;', 'unlocked': stats.get('passed_exams', 0) >= 3},
+        {'name': '初学者', 'description': '完成第一个练习', 'icon': '🎓', 'unlocked': stats.get('passed_exercises', 0) >= 1},
+        {'name': '代码达人', 'description': '完成10个练习', 'icon': '💻', 'unlocked': stats.get('passed_exercises', 0) >= 10},
+        {'name': '学习先锋', 'description': '完成50%课程', 'icon': '🚀', 'unlocked': stats.get('lesson_progress', 0) >= 50},
+        {'name': '考试通过', 'description': '通过第一次考试', 'icon': '🏆', 'unlocked': stats.get('passed_exams', 0) >= 1},
+        {'name': '全勤奖', 'description': '连续学习7天', 'icon': '📅', 'unlocked': streak_days >= 7},
+        {'name': '满分王者', 'description': '获得一次满分', 'icon': '⭐', 'unlocked': any(s.score == 100 for s in submissions)},
+        {'name': '探索者', 'description': '尝试所有课程', 'icon': '🌎', 'unlocked': stats.get('completed_lessons', 0) >= 5},
+        {'name': '专家', 'description': '通过所有考试', 'icon': '🥇', 'unlocked': stats.get('passed_exams', 0) >= 3},
     ]
     unlocked_achievements = sum(1 for a in achievements if a['unlocked'])
     total_achievements = len(achievements)
@@ -554,7 +554,7 @@ def profile():
     recent_activities = []
     for sub in submissions[:5]:
         recent_activities.append({
-            'icon': '&#9997;',
+            'icon': '✏️',
             'type': 'success',
             'title': f'提交了 "{sub.exercise.title}"',
             'detail': f'得分: {int(sub.score)}% - {"通过" if sub.status == "passed" else "未通过"}',
@@ -562,7 +562,7 @@ def profile():
         })
     for attempt in exam_attempts[:3]:
         recent_activities.append({
-            'icon': '&#127942;',
+            'icon': '🏆',
             'type': 'warning',
             'title': f'参加了 "{attempt.exam.title}" 考试',
             'detail': f'得分: {int(attempt.score)}% - {"通过" if attempt.passed else "未通过"}',
@@ -1353,6 +1353,43 @@ def report():
                          category_scores=category_scores,
                          stats=stats)
 
+@app.route('/admin/submissions')
+@login_required
+@admin_required
+def admin_submissions():
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', '')
+    search = request.args.get('search', '').strip()
+
+    query = Submission.query.order_by(Submission.submitted_at.desc())
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    if search:
+        query = query.join(User).filter(User.username.ilike(f'%{search}%'))
+
+    pagination = query.paginate(page=page, per_page=15, error_out=False)
+    return render_template('admin.html',
+                         active_tab='submissions',
+                         submission_pagination=pagination,
+                         submissions_list=pagination.items,
+                         submission_status_filter=status_filter,
+                         submission_search=search,
+                         user_count=User.query.count(),
+                         course_count=Course.query.count(),
+                         exercise_count=Exercise.query.count(),
+                         submission_count=Submission.query.count(),
+                         exam_count=Exam.query.count(),
+                         exam_attempt_count=ExamAttempt.query.count(),
+                         total_lessons=Lesson.query.count(),
+                         new_users_today=0,
+                         chart_labels=[], submission_trend=[], dau_trend=[],
+                         activity_distribution=[], course_progress=[],
+                         users=[], courses_detail=[],
+                         recent_submissions=[], pass_rate_distribution=[],
+                         exam_score_distribution=[], system_logs=[],
+                         total_log_count=0)
+
+
 @app.route('/admin')
 @login_required
 @admin_required
@@ -1505,25 +1542,23 @@ def admin_panel():
         else:
             exam_score_distribution[4] += 1
 
-    # 系统日志（模拟数据）
+    # 系统操作日志 — 从 LearningLog 表读取真实数据
+    real_logs = LearningLog.query.order_by(LearningLog.created_at.desc()).limit(100).all()
     system_logs = []
-    log_actions = [
-        ('login', '用户登录', '成功登录系统'),
-        ('submit', '提交练习', '完成了练习提交'),
-        ('course', '课程学习', '开始学习新课程'),
-        ('exam', '参加考试', '完成了一次考试')
-    ]
-    import random
-    for i in range(20):
-        log_type, action, detail = random.choice(log_actions)
-        log_time = datetime.utcnow() - timedelta(hours=random.randint(1, 48))
+    for log in real_logs:
         system_logs.append({
-            'timestamp': log_time.strftime('%Y-%m-%d %H:%M:%S'),
-            'username': random.choice(['张三', '李四', '王五', 'admin']),
-            'action': action,
-            'detail': detail,
-            'type': log_type
+            'id': log.id,
+            'timestamp': log.formatted_time,
+            'username': log.user.username if log.user else '系统',
+            'user_id': log.user_id,
+            'action': log.action,
+            'detail': log.detail or '',
+            'type': log.log_type,
+            'score': log.score,
+            'duration_seconds': log.duration_seconds,
+            'ip_address': log.ip_address or '-',
         })
+    total_log_count = LearningLog.query.count()
 
     return render_template('admin.html',
                          user_count=user_count,
@@ -1544,7 +1579,89 @@ def admin_panel():
                          recent_submissions=recent_submissions,
                          pass_rate_distribution=pass_rate_distribution,
                          exam_score_distribution=exam_score_distribution,
-                         system_logs=system_logs)
+                         system_logs=system_logs,
+                         total_log_count=total_log_count)
+
+@app.route('/admin/user/<int:user_id>')
+@login_required
+@admin_required
+def admin_user_detail(user_id):
+    """管理员查看用户详情"""
+    user = User.query.get_or_404(user_id)
+    stats = get_user_stats(user_id)
+
+    # 获取该用户最近的提交记录
+    submissions = Submission.query.filter_by(user_id=user_id)\
+        .order_by(Submission.submitted_at.desc()).limit(20).all()
+
+    # 获取该用户的考试记录
+    exam_attempts = ExamAttempt.query.filter_by(user_id=user_id)\
+        .order_by(ExamAttempt.started_at.desc()).limit(10).all()
+
+    # 获取该用户的学习日志
+    learning_logs = LearningLog.query.filter_by(user_id=user_id)\
+        .order_by(LearningLog.created_at.desc()).limit(30).all()
+
+    # 获取课程学习进度
+    course_progress_list = []
+    for course in Course.query.all():
+        progress = user.get_course_progress(course.id)
+        if progress > 0:
+            course_progress_list.append({
+                'title': course.title,
+                'progress': progress,
+                'course_id': course.id
+            })
+
+    return render_template('admin_user_detail.html',
+                         u=user, stats=stats,
+                         submissions=submissions,
+                         exam_attempts=exam_attempts,
+                         learning_logs=learning_logs,
+                         course_progress_list=course_progress_list)
+
+
+@app.route('/admin/user/<int:user_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def admin_user_update(user_id):
+    """管理员更新用户信息"""
+    user = User.query.get_or_404(user_id)
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': '无效请求数据'})
+    new_username = data.get('username', '').strip()
+    new_email = data.get('email', '').strip()
+    if not new_username or not new_email:
+        return jsonify({'success': False, 'error': '用户名和邮箱不能为空'})
+    existing = User.query.filter(User.username == new_username, User.id != user_id).first()
+    if existing:
+        return jsonify({'success': False, 'error': '用户名已被占用'})
+    existing_email = User.query.filter(User.email == new_email, User.id != user_id).first()
+    if existing_email:
+        return jsonify({'success': False, 'error': '邮箱已被占用'})
+    user.username = new_username
+    user.email = new_email
+    user.role = data.get('role', user.role)
+    user.department = data.get('department', user.department)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/user/<int:user_id>/reset-password', methods=['POST'])
+@login_required
+@admin_required
+def admin_user_reset_password(user_id):
+    """管理员重置用户密码"""
+    user = User.query.get_or_404(user_id)
+    data = request.get_json()
+    new_password = data.get('password', '').strip()
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'error': '密码至少需要6位'})
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({'success': True})
+
 
 @app.route('/admin/course/new', methods=['GET', 'POST'])
 @login_required

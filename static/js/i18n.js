@@ -21,6 +21,15 @@
       'nav.admin': '管理后台',
       'nav.logout': '退出登录',
       'nav.switchLang': '切换语言',
+      'nav.learning': '学习中心',
+      'nav.section.main': '主导航',
+      'nav.section.personal': '个人',
+      'nav.section.system': '系统',
+
+      // 用户状态
+      'user.online': '在线',
+      'user.guest': '游客模式',
+      'user.clickLogin': '点击登录',
 
       // 跳过链接
       'skip.toMain': '跳转到主内容',
@@ -224,6 +233,15 @@
       'nav.admin': 'Admin Panel',
       'nav.logout': 'Logout',
       'nav.switchLang': 'Switch Language',
+      'nav.learning': 'Learning',
+      'nav.section.main': 'Main',
+      'nav.section.personal': 'Personal',
+      'nav.section.system': 'System',
+
+      // User status
+      'user.online': 'Online',
+      'user.guest': 'Guest',
+      'user.clickLogin': 'Click to Login',
 
       // Skip link
       'skip.toMain': 'Skip to main content',
@@ -410,17 +428,19 @@
   };
 
   function detectLanguage(){
-    try{var stored=localStorage.getItem('lang');if(stored&&LOCALES[stored])return stored}catch(e){}
+    try{var stored=localStorage.getItem('lang')||localStorage.getItem('app-language');if(stored&&LOCALES[stored])return stored}catch(e){}
     var browserLang=(navigator.language||navigator.userLanguage||'').split('-')[0];
     if(browserLang==='zh')return'zh-CN';
-    try{var stored2=localStorage.getItem('lang');if(stored2&&LOCALES[stored2])return stored2}catch(e){}
+    try{return 'zh-CN'}catch(e){}
     return'zh-CN';
   }
 
   var currentLang=detectLanguage();
 
   function t(key){
-    return(LOCALES[currentLang]&&LOCALES[currentLang][key])||(LOCALES['zh-CN']&&LOCALES['zh-CN'][key])||key;
+    var val=(LOCALES[currentLang]&&LOCALES[currentLang][key])||(LOCALES['zh-CN']&&LOCALES['zh-CN'][key]);
+    if(typeof val==='string')return val;
+    return '';
   }
 
   function applyTranslations(root){

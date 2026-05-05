@@ -52,6 +52,8 @@
   --bg-gray-200:#e5e7eb;
   --bg-gray-800:#1f2937;
   --bg-gray-900:#111827;
+  /* ===== 灰色阶 ===== */
+  --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;--gray-700:#374151;--gray-800:#1f2937;--gray-900:#0f172a;
   
   /* ===== 边框色 ===== */
   --border-light:#e5e7eb;
@@ -180,7 +182,7 @@ a:focus-visible{
   top:-40px;
   left:var(--space-4);
   background:var(--primary);
-  color:var(--bg-white);
+  color:#FFFFFF;
   padding:var(--space-2) var(--space-4);
   z-index:calc(var(--z-tooltip) + 1);
   border-radius:var(--radius);
@@ -300,8 +302,6 @@ main#main-content{padding-top:56px;
   text-decoration:none;
   white-space:nowrap;
   font-family:inherit;
-  position:relative;
-  overflow:hidden;
 }
 
 .btn:focus-visible{
@@ -314,16 +314,17 @@ main#main-content{padding-top:56px;
   cursor:not-allowed;
 }
 
-/* 主按钮 */
+/* 主按钮 — !important 防止全局样式污染 */
 .btn-primary{
-  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-  color:var(--bg-white);
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark)) !important;
+  color:#FFFFFF;
   box-shadow:var(--shadow-sm),0 4px 14px rgba(0,102,204,.3);
 }
 .btn-primary:hover:not(:disabled){
+  background:var(--primary-dark) !important;
   transform:translateY(-2px);
   box-shadow:var(--shadow-md),0 6px 20px rgba(0,102,204,.4);
-  color:var(--bg-white);
+  color:#FFFFFF;
 }
 .btn-primary:active:not(:disabled){
   transform:translateY(0);
@@ -332,20 +333,21 @@ main#main-content{padding-top:56px;
 
 /* 次要按钮 */
 .btn-secondary{
-  background:var(--bg-white);
-  color:var(--text-secondary);
+  background:#F5F7FA;
+  color:#333333;
   border-color:var(--border-medium);
 }
 .btn-secondary:hover:not(:disabled){
-  background:var(--bg-gray-100);
+  background:#E0E4EA;
   border-color:var(--border-dark);
-  color:var(--text-primary);
+  color:#333333;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
 }
 
 /* 成功按钮 */
 .btn-success{
   background:linear-gradient(135deg,var(--success),var(--success-dark));
-  color:var(--bg-white);
+  color:#FFFFFF;
   box-shadow:var(--shadow-sm),0 4px 14px rgba(5,150,105,.3);
 }
 .btn-success:hover:not(:disabled){
@@ -356,14 +358,14 @@ main#main-content{padding-top:56px;
 /* 警告按钮 */
 .btn-warning{
   background:linear-gradient(135deg,var(--warning),var(--warning-dark));
-  color:var(--bg-white);
+  color:#FFFFFF;
   box-shadow:var(--shadow-sm),0 4px 14px rgba(180,83,9,.3);
 }
 
 /* 危险按钮 */
 .btn-danger{
   background:linear-gradient(135deg,var(--danger),var(--danger-dark));
-  color:var(--bg-white);
+  color:#FFFFFF;
   box-shadow:var(--shadow-sm),0 4px 14px rgba(220,38,38,.3);
 }
 
@@ -509,7 +511,7 @@ main#main-content{padding-top:56px;
   align-items:center;
   justify-content:center;
   font-size:2rem;
-  color:var(--bg-white);
+  color:#FFFFFF;
   margin-bottom:var(--space-5);
   box-shadow:var(--shadow-lg),0 8px 24px rgba(0,102,204,.25);
   transition:transform var(--transition-base),box-shadow var(--transition-base);
@@ -585,7 +587,7 @@ main#main-content{padding-top:56px;
 /* ===================== HERO SECTION ===================== */
 .hero-section{
   background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a855f7 100%);
-  color:var(--bg-white);
+  color:#FFFFFF;
   padding:var(--space-20) 0 var(--space-16);
   position:relative;
   overflow:hidden;
@@ -676,7 +678,7 @@ main#main-content{padding-top:56px;
   align-items:center;
   justify-content:center;
   background:linear-gradient(90deg,var(--primary),var(--secondary));
-  color:var(--bg-white);
+  color:#FFFFFF;
   font-weight:600;
   transition:width var(--transition-slow);
   border-radius:var(--radius-full);
@@ -880,7 +882,7 @@ main#main-content{padding-top:56px;
 }
 .lesson-item.active{
   background:var(--primary);
-  color:var(--bg-white);
+  color:#FFFFFF;
 }
 .lesson-item.completed{color:var(--success)}
 .lesson-item .lesson-number{
@@ -898,7 +900,7 @@ main#main-content{padding-top:56px;
 .lesson-item.active .lesson-number{background:rgba(255,255,255,.2)}
 .lesson-item.completed .lesson-number{
   background:var(--success);
-  color:var(--bg-white);
+  color:#FFFFFF;
 }
 
 .lesson-content-wrapper{
@@ -954,15 +956,15 @@ main#main-content{padding-top:56px;
   line-height:var(--leading-relaxed);
 }
 .lesson-body pre{
-  background:var(--bg-gray-900);
-  color:#e2e8f0;
-  padding:var(--space-5);
-  border-radius:var(--radius-lg);
+  background:#1e1e1e;
+  color:#d4d4d4;
+  padding:16px;
+  border-radius:6px;
   overflow-x:auto;
   margin:var(--space-4) 0;
-  font-size:var(--text-sm);
-  line-height:var(--leading-relaxed);
-  font-family:var(--font-mono);
+  font-size:15px;
+  line-height:1.6;
+  font-family:'Consolas','Monaco','Courier New',monospace;
 }
 .lesson-body p code{
   background:var(--bg-gray-200);
@@ -1135,11 +1137,11 @@ main#main-content{padding-top:56px;
 }
 .path-step.active .step-number{
   background:var(--primary);
-  color:var(--bg-white);
+  color:#FFFFFF;
 }
 .path-step.completed .step-number{
   background:var(--success);
-  color:var(--bg-white);
+  color:#FFFFFF;
 }
 .path-step .step-label{
   font-weight:500;
@@ -1161,7 +1163,7 @@ main#main-content{padding-top:56px;
   margin-top:auto;
 }
 .footer h5{
-  color:var(--bg-white);
+  color:#FFFFFF;
   font-size:var(--text-base);
   font-weight:600;
   margin-bottom:var(--space-4);
@@ -1396,7 +1398,8 @@ html{scroll-behavior:smooth}
     --primary-bg:rgba(37,99,235,.15);--primary-50:rgba(37,99,235,.1);--primary-100:rgba(37,99,235,.2);--primary-200:rgba(37,99,235,.25);--primary-300:rgba(96,165,250,.4);--primary-400:rgba(147,197,253,.5);
     --secondary:#67e8f9;--secondary-dark:#22d3ee;--secondary-light:#a5f3fc;
     --bg-white:#1E1E2E;--bg-gray-50:#1E1E2E;--bg-gray-100:#1E1E2E;--bg-gray-200:#334155;--bg-gray-800:#f1f5f9;--bg-gray-900:#f8fafc;
-    --text-primary:#E2E8F0;--text-secondary:#cbd5e1;--text-tertiary:#94A3B8;--text-muted:#94A3B8;
+    --gray-50:#0f172a;--gray-100:#1e293b;--gray-200:#334155;--gray-300:#475569;--gray-400:#64748b;--gray-500:#94a3b8;--gray-600:#cbd5e1;--gray-700:#e2e8f0;--gray-800:#f1f5f9;--gray-900:#f8fafc;
+    --text-primary:#E2E8F0;--text-secondary:#cbd5e1;--text-tertiary:#CBD5E1;--text-muted:#94A3B8;
     --border-light:#334155;--border-medium:#4b5563;--border-dark:#6b7280;
     --link-color:#60A5FA;--link-hover:#93C5FD;--link-visited:#A5B4FC;
     --shadow-xs:0 1px 2px rgba(0,0,0,.3);--shadow-sm:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
@@ -1855,7 +1858,7 @@ html{scroll-behavior:smooth}
   transform:translateX(-50%) translateY(-4px);
   padding:var(--space-1) var(--space-3);
   background:var(--bg-gray-900);
-  color:var(--bg-white);
+  color:#FFFFFF;
   font-size:var(--text-xs);
   border-radius:var(--radius);
   white-space:nowrap;
@@ -1895,7 +1898,7 @@ html{scroll-behavior:smooth}
   right:var(--space-2);
   padding:var(--space-1) var(--space-3);
   background:rgba(255,255,255,.1);
-  color:var(--bg-white);
+  color:#FFFFFF;
   border:none;
   border-radius:var(--radius);
   font-size:var(--text-xs);
@@ -1970,13 +1973,13 @@ html{scroll-behavior:smooth}
   border-radius:var(--radius);
 }
 
-/* ===================== GLASSMORPHISM ===================== */
+/* ===================== GLASSMORPHISM — Edge 安全（blur 在 ::before） ===================== */
 .glass{
+  position:relative;isolation:isolate;
   background:rgba(255,255,255,.8);
-  backdrop-filter:saturate(180%) blur(20px);
-  -webkit-backdrop-filter:saturate(180%) blur(20px);
   border:1px solid rgba(255,255,255,.3);
 }
+.glass::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px)}
 
 /* ===================== GRADIENT TEXT ===================== */
 .gradient-text{
@@ -1999,4 +2002,10 @@ html{scroll-behavior:smooth}
 @keyframes slideDown{
   from{transform:translate(-50%,-20px);opacity:0}
   to{transform:translate(-50%,0);opacity:1}
+}
+
+/* ===================== ULTIMATE BUTTON FIX ===================== */
+.btn.btn-primary,.btn-primary.btn-sm,.btn-primary.btn-lg,.btn-primary.btn-course-home,.btn-primary.path-node-btn,.btn-primary.btn-course-path{
+  background:linear-gradient(135deg,#0066CC,#0052A3) !important;
+  color:#FFFFFF !important;
 }
